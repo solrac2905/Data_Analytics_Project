@@ -8,11 +8,23 @@ python --version
 
 
 pip install kedro
+pip install kedro-viz
+
 kedro info
 
 kedro new --starter=spaceflights-pandas
 
 kedro ipython
+shuttles = catalog.load("shuttles")
+shuttles.head()
 
+OUTSIDE KEDRO IPYTHON 
+kedro run --nodes=preprocess_companies_node
+kedro run
+kedro run --nodes=preprocess_companies_node,preprocess_shuttles_node
+kedro run --pipeline=data_science
+
+kedro viz run
+ctrl+c
 
 '''
