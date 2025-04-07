@@ -1,4 +1,12 @@
 
-scoring_data:
+scoring_data_raw:
   type: pandas.CSVDataset
   filepath: data/01_raw/data.csv
+
+encoded_data:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/encoded.csv
+
+final_data:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/final.csv
