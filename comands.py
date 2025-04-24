@@ -27,4 +27,8 @@ kedro run --pipeline=data_science
 kedro viz run
 ctrl+c
 
+
+# IR A LA CARPETA DEL PROYECTO KEDRO PRIMERO.
+kedro jupyter notebook
+
 '''
