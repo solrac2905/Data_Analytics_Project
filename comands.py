@@ -31,4 +31,14 @@ ctrl+c
 # IR A LA CARPETA DEL PROYECTO KEDRO PRIMERO.
 kedro jupyter notebook
 
+
+
+
+kedro info
+python -V
+pip install black # REFORMATING
+black ambs-analytics-project/src/ambs_analytics_project/
+kedro registry list
+kedro run --pipeline data_processing
+
 '''

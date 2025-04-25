@@ -21,7 +21,7 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def drop_top_5_percent_missing(df: pd.DataFrame) -> pd.DataFrame:
+def drop_top_5_percent_missing(df: pd.DataFrame, threshold_missing: float = 0.95) -> pd.DataFrame:
     """
     Drops the top 5% of rows with the most missing values across variables.
 
@@ -36,7 +36,7 @@ def drop_top_5_percent_missing(df: pd.DataFrame) -> pd.DataFrame:
     df["missing_count"] = df.isnull().sum(axis=1)
 
     # Calculate 95th percentile threshold
-    threshold = df["missing_count"].quantile(0.95)
+    threshold = df["missing_count"].quantile(threshold_missing)
 
     # Filter rows below or equal to the threshold
     df = df[df["missing_count"] <= threshold].copy()
@@ -155,7 +155,7 @@ def apply_one_hot_encoding(df: pd.DataFrame, categorical_columns: list) -> pd.Da
     df = pd.get_dummies(df, columns = categorical_columns, dtype = int)
     return df
 
-def scale_numeric_features(df: pd.DataFrame, numeric_columns: list, target_column: str) -> pd.DataFrame:
+def scale_numeric_features(df: pd.DataFrame, target_column: str) -> pd.DataFrame:
     """
     Scales numeric features using Min-Max scaling, excluding the target variable.
 
@@ -167,7 +167,8 @@ def scale_numeric_features(df: pd.DataFrame, numeric_columns: list, target_colum
     Returns:
         DataFrame with scaled numeric features.
     """
-    # Exclude the target column from scaling
+    # Exclude the target column from scaling and just consider numeric columns
+    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.drop(target_column)
     columns_to_scale = [col for col in numeric_columns if col != target_column]
 
     # Apply Min-Max scaling
@@ -183,9 +184,16 @@ def scale_numeric_features(df: pd.DataFrame, numeric_columns: list, target_colum
 
     return final_df
 
+def pre_processing_raw_data(df: pd.DataFrame, params) -> pd.DataFrame:
 
+    df = handle_missing_values(df)
+    df = drop_top_5_percent_missing(df, params.drop_top_5_percent_missing.threshold_missing)
+    df = flag_variables_with_high_default_diff(df, params.flag_variables_with_high_default_diff.vars_to_check, params.flag_variables_with_high_default_diff.threshold_diff)
+    df = impute_missing_data(df, params.impute_missing_data.cols_to_fill_median, params.impute_missing_data.cols_to_fill_zero)
+    df = handle_outliers(df, params.handle_outliers.upper_only, params.handle_outliers.both_ends, params.handle_outliers.upper_only_quantile, params.handle_outliers.both_ends_lower_quantile, params.handle_outliers.both_ends_upper_quantile, params.handle_outliers.clage_col, params.handle_outliers.clage_upper_quantile)
+    df = apply_one_hot_encoding(df, params.apply_one_hot_encoding.categorical_columns)
+    df = scale_numeric_features(df, params.scale_numeric_features.target_column)
 
-
-
+    return df
 
 

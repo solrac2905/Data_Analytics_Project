@@ -1,7 +1,24 @@
 from kedro.pipeline import Pipeline, node, pipeline
 
-from .nodes import drop_top_5_percent_missing, handle_missing_values, flag_variables_with_high_default_diff, impute_missing_data, handle_outliers, apply_one_hot_encoding, scale_numeric_features
+from .nodes import pre_processing_raw_data
 
+
+def create_pipeline(**kwargs) -> Pipeline:
+    return pipeline(
+        [
+        node(
+            func = pre_processing_raw_data,
+            inputs = {
+                "df": "scoring_data_raw",
+                "params": "parameters",
+            },
+            outputs = "preprocessed_dataset",
+            name = "preprocessing_raw_node"
+        )
+        ]
+    )
+
+'''
 def create_pipeline(**kwargs) -> Pipeline:
     return pipeline(
         [
@@ -13,7 +30,10 @@ def create_pipeline(**kwargs) -> Pipeline:
         ),
         node(
             func = handle_missing_values,
-            inputs = "input_dataset",
+            inputs = {
+                "df": "input_dataset",
+                "threshold_missing": "params:threshold_missing"
+            },
             outputs= "handle_nulls_dataset",
             name = "handle_missing_values"
         ),
@@ -65,7 +85,6 @@ def create_pipeline(**kwargs) -> Pipeline:
             func = scale_numeric_features,
             inputs = {
                 "df": "imputed_dataset",
-                "numeric_columns": "params:numeric_columns",
                 "target_column": "params:target_column"
             },
             outputs = "scaled_dataset",
@@ -73,3 +92,4 @@ def create_pipeline(**kwargs) -> Pipeline:
         )
         ]
     )
+'''
