@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn import preprocessing
 
+
 def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """
     Imputes missing values based on predefined assumptions.
@@ -21,7 +22,10 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def drop_top_5_percent_missing(df: pd.DataFrame, threshold_missing: float = 0.95) -> pd.DataFrame:
+
+def drop_top_5_percent_missing(
+    df: pd.DataFrame, threshold_missing: float = 0.95
+) -> pd.DataFrame:
     """
     Drops the top 5% of rows with the most missing values across variables.
 
@@ -42,11 +46,14 @@ def drop_top_5_percent_missing(df: pd.DataFrame, threshold_missing: float = 0.95
     df = df[df["missing_count"] <= threshold].copy()
 
     # Drop the 'missing_count' column
-    df.drop(columns = ["missing_count"], inplace = True)
+    df.drop(columns=["missing_count"], inplace=True)
 
     return df
 
-def flag_variables_with_high_default_diff(df: pd.DataFrame, vars_to_check: list, threshold_diff: float = 0.10) -> pd.DataFrame:
+
+def flag_variables_with_high_default_diff(
+    df: pd.DataFrame, vars_to_check: list, threshold_diff: float = 0.10
+) -> pd.DataFrame:
     """
     Flags variables where the default rate difference between missing and non-missing values exceeds the threshold.
 
@@ -65,8 +72,10 @@ def flag_variables_with_high_default_diff(df: pd.DataFrame, vars_to_check: list,
         not_missing_df = df[df[var].notnull()]
 
         # Calculate default rates
-        missing_default = missing_df['BAD'].mean() if not missing_df.empty else None
-        not_missing_default = not_missing_df['BAD'].mean() if not missing_df.empty else None
+        missing_default = missing_df["BAD"].mean() if not missing_df.empty else None
+        not_missing_default = (
+            not_missing_df["BAD"].mean() if not missing_df.empty else None
+        )
 
         # Skip if one of the groups is empty
         if missing_default is None or not_missing_default is None:
@@ -80,11 +89,14 @@ def flag_variables_with_high_default_diff(df: pd.DataFrame, vars_to_check: list,
 
     # Create Flagging Column
     for col in strong_difference_flags:
-        df[f'{col}_missing'] = df[col].isnull().astype(int)
+        df[f"{col}_missing"] = df[col].isnull().astype(int)
 
     return df
 
-def impute_missing_data(df: pd.DataFrame, cols_to_fill_median: list, cols_to_fill_zero: list) -> pd.DataFrame:
+
+def impute_missing_data(
+    df: pd.DataFrame, cols_to_fill_median: list, cols_to_fill_zero: list
+) -> pd.DataFrame:
     """
     Imputes missing data with median or zero based on column groups.
 
@@ -107,7 +119,17 @@ def impute_missing_data(df: pd.DataFrame, cols_to_fill_median: list, cols_to_fil
 
     return df
 
-def handle_outliers(df: pd.DataFrame, upper_only: list, both_ends: list, upper_only_quantile: float = 0.995, both_ends_lower_quantile: float = 0.005, both_ends_upper_quantile: float = 0.995, clage_col: str = 'CLAGE', clage_upper_quantile: float = 0.99975) -> pd.DataFrame:
+
+def handle_outliers(
+    df: pd.DataFrame,
+    upper_only: list,
+    both_ends: list,
+    upper_only_quantile: float = 0.995,
+    both_ends_lower_quantile: float = 0.005,
+    both_ends_upper_quantile: float = 0.995,
+    clage_col: str = "CLAGE",
+    clage_upper_quantile: float = 0.99975,
+) -> pd.DataFrame:
     """
     Handles outliers by capping values at specific percentiles.
 
@@ -141,6 +163,7 @@ def handle_outliers(df: pd.DataFrame, upper_only: list, both_ends: list, upper_o
 
     return df
 
+
 def apply_one_hot_encoding(df: pd.DataFrame, categorical_columns: list) -> pd.DataFrame:
     """
     Applies one-hot encoding to specified categorical columns.
@@ -152,8 +175,9 @@ def apply_one_hot_encoding(df: pd.DataFrame, categorical_columns: list) -> pd.Da
     Returns:
         DataFrame with one-hot encoded columns.
     """
-    df = pd.get_dummies(df, columns = categorical_columns, dtype = int)
+    df = pd.get_dummies(df, columns=categorical_columns, dtype=int)
     return df
+
 
 def scale_numeric_features(df: pd.DataFrame, target_column: str) -> pd.DataFrame:
     """
@@ -168,8 +192,10 @@ def scale_numeric_features(df: pd.DataFrame, target_column: str) -> pd.DataFrame
         DataFrame with scaled numeric features.
     """
     # Exclude the target column from scaling and just consider numeric columns
-    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.drop(target_column)
-    columns_to_scale = [col for col in numeric_columns if col != target_column]
+    numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns.drop(
+        target_column
+    )
+    columns_to_scale = [col for col in numeric_cols if col != target_column]
 
     # Apply Min-Max scaling
     scaler = preprocessing.MinMaxScaler()
@@ -184,16 +210,36 @@ def scale_numeric_features(df: pd.DataFrame, target_column: str) -> pd.DataFrame
 
     return final_df
 
+
 def pre_processing_raw_data(df: pd.DataFrame, params) -> pd.DataFrame:
 
     df = handle_missing_values(df)
-    df = drop_top_5_percent_missing(df, params.drop_top_5_percent_missing.threshold_missing)
-    df = flag_variables_with_high_default_diff(df, params.flag_variables_with_high_default_diff.vars_to_check, params.flag_variables_with_high_default_diff.threshold_diff)
-    df = impute_missing_data(df, params.impute_missing_data.cols_to_fill_median, params.impute_missing_data.cols_to_fill_zero)
-    df = handle_outliers(df, params.handle_outliers.upper_only, params.handle_outliers.both_ends, params.handle_outliers.upper_only_quantile, params.handle_outliers.both_ends_lower_quantile, params.handle_outliers.both_ends_upper_quantile, params.handle_outliers.clage_col, params.handle_outliers.clage_upper_quantile)
-    df = apply_one_hot_encoding(df, params.apply_one_hot_encoding.categorical_columns)
-    df = scale_numeric_features(df, params.scale_numeric_features.target_column)
+    df = drop_top_5_percent_missing(
+        df, params["handle_missing_values"]["threshold_missing"]
+    )
+    df = flag_variables_with_high_default_diff(
+        df,
+        params["flag_variables_with_high_default_diff"]["vars_to_check"],
+        params["flag_variables_with_high_default_diff"]["threshold_diff"],
+    )
+    df = impute_missing_data(
+        df,
+        params["impute_missing_data"]["cols_to_fill_median"],
+        params["impute_missing_data"]["cols_to_fill_zero"],
+    )
+    df = handle_outliers(
+        df,
+        params["handle_outliers"]["upper_only"],
+        params["handle_outliers"]["both_ends"],
+        params["handle_outliers"]["upper_only_quantile"],
+        params["handle_outliers"]["both_ends_lower_quantile"],
+        params["handle_outliers"]["both_ends_upper_quantile"],
+        params["handle_outliers"]["clage_col"],
+        params["handle_outliers"]["clage_upper_quantile"],
+    )
+    df = apply_one_hot_encoding(
+        df, params["apply_one_hot_encoding"]["categorical_columns"]
+    )
+    df = scale_numeric_features(df, params["scale_numeric_features"]["target_column"])
 
     return df
-
-

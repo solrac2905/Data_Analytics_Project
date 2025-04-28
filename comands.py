@@ -40,5 +40,7 @@ pip install black # REFORMATING
 black ambs-analytics-project/src/ambs_analytics_project/
 kedro registry list
 kedro run --pipeline data_processing
+kedro viz
+kedro pipeline create data_science
 
 '''
