@@ -243,3 +243,40 @@ def pre_processing_raw_data(df: pd.DataFrame, params) -> pd.DataFrame:
     df = scale_numeric_features(df, params["scale_numeric_features"]["target_column"])
 
     return df
+
+
+def apply_log_transform(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Apply log1p transformation to skewed non-binary numeric columns.
+
+    Args:
+        df (pd.DataFrame): Input dataframe.
+
+    Returns:
+        pd.DataFrame: Transformed dataframe with log1p applied to skewed columns.
+    """
+    # Step 1: Select numeric columns
+    numeric_cols = df.select_dtypes(include=[np.number])
+
+    # Step 2: Exclude binary columns (only two unique values: 0 and 1)
+    non_binary_numeric_cols = [
+        col
+        for col in numeric_cols.columns
+        if not set(df[col].dropna().unique()).issubset({0, 1})
+    ]
+
+    # Step 3: Check skewness on non-binary numeric columns
+    skewed_cols = (
+        df[non_binary_numeric_cols]
+        .apply(lambda x: x.skew())
+        .sort_values(ascending=False)
+    )
+    skewed_cols = skewed_cols[
+        skewed_cols > 1
+    ].index.tolist()  # Adjust threshold if needed
+
+    # Step 4: Apply log1p to skewed columns only
+    df_transformed = df.copy()
+    df_transformed[skewed_cols] = df_transformed[skewed_cols].apply(np.log1p)
+
+    return df_transformed

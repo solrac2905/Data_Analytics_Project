@@ -15,6 +15,10 @@ preprocessed_dataset:
   type: pandas.ParquetDataset
   filepath: data/02_intermediate/preprocessed_dataset.parquet
 
+preprocessed_log_dataset:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/preprocessed_log_dataset.parquet
+
 X_train:
   type: pandas.ParquetDataset
   filepath: data/05_model_input/X_train.parquet
@@ -34,4 +38,34 @@ y_test:
 logistic_model:
   type: pickle.PickleDataset
   filepath: data/06_models/logistic_model.pickle
+  versioned: true
+
+decision_tree_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/decision_tree_model.pickle
+  versioned: true
+
+random_forest_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/random_forest_model.pickle
+  versioned: true
+
+xgboost_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/xgboost_model.pickle
+  versioned: true
+
+neural_network_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/neural_network_model.pickle
+  versioned: true
+
+lightgbm_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/lightgbm_model.pickle
+  versioned: true
+
+catboost_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/catboost_model.pickle
   versioned: true
