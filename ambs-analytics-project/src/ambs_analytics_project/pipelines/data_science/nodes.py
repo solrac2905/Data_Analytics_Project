@@ -182,7 +182,7 @@ def random_forest_classifier_node(
 
     return model
 
-
+#CORREGIR SCALE POST WEIGHT
 def xgboost_classifier_node(
     X_train: pd.DataFrame, y_train: pd.Series, params: Dict
 ) -> XGBClassifier:
@@ -209,6 +209,7 @@ def xgboost_classifier_node(
     scale_pos_weight = (len(y_train) - sum(y_train)) / sum(
         y_train
     )  # Balance class weights
+    
     xgb_base = XGBClassifier(
         objective="binary:logistic",
         eval_metric="auc",
