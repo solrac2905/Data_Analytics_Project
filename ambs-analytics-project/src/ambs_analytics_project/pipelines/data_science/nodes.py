@@ -104,7 +104,7 @@ def feature_selection(
     n_jobs: float = -1,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Perform forward feature selection using Logistic Regression and retain only selected features.
+    Perform feature selection using Logistic Regression and retain only selected features.
 
     Parameters:
         X_train_scaled_df (pd.DataFrame): Scaled training data.
@@ -123,6 +123,10 @@ def feature_selection(
         pd.DataFrame: Updated X_test with selected features.
         list: List of selected feature names.
     """
+
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
+
     # Logistic Regression model
     logreg = LogisticRegression(
         solver=solver, class_weight=class_weight, max_iter=max_iter
@@ -170,6 +174,9 @@ def logistic_regression_node(
     verbose = params.get("verbose", 1)
     n_jobs = params.get("n_jobs", -1)
 
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
+
     # Step 1: Initialize logistic regression
     logreg_base = LogisticRegression(max_iter=max_iter, random_state=random_state)
 
@@ -212,6 +219,9 @@ def decision_tree_classifier_node(
     random_state = params.get("random_state", 42)
     verbose = params.get("verbose", 1)
     n_jobs = params.get("n_jobs", -1)
+
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
 
     # Step 1: Initialize decision tree classifier
     dt_base = DecisionTreeClassifier(random_state=random_state)
@@ -256,6 +266,9 @@ def random_forest_classifier_node(
     verbose = params.get("verbose", 1)
     n_jobs = params.get("n_jobs", -1)
 
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
+
     # Step 1: Initialize Random Forest Classifier
     rf_base = RandomForestClassifier(random_state=random_state, n_jobs=n_jobs)
 
@@ -299,6 +312,9 @@ def xgboost_classifier_node(
     random_state = params.get("random_state", 42)
     verbose = params.get("verbose", 1)
     n_jobs = params.get("n_jobs", -1)
+
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
 
     # Step 1: Initialize XGBoost Classifier with imbalance handling
     scale_pos_weight = (len(y_train) - sum(y_train)) / sum(
@@ -353,6 +369,9 @@ def neural_network_classifier_node(
     n_jobs = params.get("n_jobs", -1)
     max_iter = params.get("max_iter", 1000)
 
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
+
     # Step 1: Initialize MLP Classifier
     mlp_base = MLPClassifier(max_iter=max_iter, random_state=random_state)
 
@@ -396,6 +415,9 @@ def lightgbm_classifier_node(
     verbose = params.get("verbose", 1)
     n_jobs = params.get("n_jobs", -1)
 
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
+
     # Step 1: Initialize LightGBM Classifier
     lgbm_base = LGBMClassifier(random_state=random_state)
 
@@ -438,6 +460,9 @@ def catboost_classifier_node(
     random_state = params.get("random_state", 42)
     verbose = params.get("verbose", 1)
     n_jobs = params.get("n_jobs", -1)
+
+    # Ensure y_train is a 1D array
+    y_train = y_train.values.ravel()
 
     # Step 1: Initialize CatBoost Classifier
     cb_base = CatBoostClassifier(

@@ -62,6 +62,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="logistic_regression_node",
             ),
             node(
+                # CHECK THE WARNING
                 func=decision_tree_classifier_node,
                 inputs=[
                     "X_train_after_selection",
@@ -72,6 +73,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="decision_tree_node",
             ),
             node(
+                # CHECK THE WARNING
                 func=random_forest_classifier_node,
                 inputs=[
                     "X_train_after_selection",
