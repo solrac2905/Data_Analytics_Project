@@ -1,6 +1,8 @@
 from kedro.pipeline import Pipeline, node, pipeline
 from .nodes import (
-    train_test_split_node,
+    scale_numerical_columns,
+    train_test_split_function,
+    feature_selection,
     logistic_regression_node,
     results,
     decision_tree_classifier_node,
@@ -16,9 +18,15 @@ def create_pipeline(**kwargs) -> Pipeline:
     return pipeline(
         [
             node(
-                func=train_test_split_node,
+                func=scale_numerical_columns,
+                inputs=["preprocessed_log_dataset"],
+                outputs="preprocessed_scale_dataset",
+                name="scale_node",
+            ),
+            node(
+                func=train_test_split_function,
                 inputs=[
-                    "preprocessed_log_dataset",
+                    "preprocessed_scale_dataset",
                     "params:train_test_split.target_col",
                     "params:train_test_split.test_size",
                     "params:train_test_split.random_state",
@@ -27,44 +35,89 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="train_test_split_node",
             ),
             node(
+                func=feature_selection,
+                inputs=[
+                    "X_train",
+                    "y_train",
+                    "X_test",
+                    "params:feature_selection.solver",
+                    "params:feature_selection.class_weight",
+                    "params:feature_selection.max_iter",
+                    "params:feature_selection.direction",
+                    "params:feature_selection.scoring",
+                    "params:feature_selection.cv",
+                    "params:feature_selection.n_jobs",
+                ],
+                outputs=["X_train_after_selection", "X_test_after_selection"],
+                name="feature_selection_node",
+            ),
+            node(
                 func=logistic_regression_node,
-                inputs=["X_train", "y_train", "params:logistic_regression"],
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:logistic_regression",
+                ],
                 outputs="logistic_model",
                 name="logistic_regression_node",
             ),
             node(
                 func=decision_tree_classifier_node,
-                inputs=["X_train", "y_train", "params:decision_tree_classifier"],
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:decision_tree_classifier",
+                ],
                 outputs="decision_tree_model",
                 name="decision_tree_node",
             ),
             node(
                 func=random_forest_classifier_node,
-                inputs=["X_train", "y_train", "params:random_forest_classifier"],
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:random_forest_classifier",
+                ],
                 outputs="random_forest_model",
                 name="random_forest_node",
             ),
             node(
                 func=xgboost_classifier_node,
-                inputs=["X_train", "y_train", "params:xgboost_classifier"],
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:xgboost_classifier",
+                ],
                 outputs="xgboost_model",
                 name="xgboost_node",
             ),
             node(
                 func=neural_network_classifier_node,
-                inputs=["X_train", "y_train", "params:neural_network_classifier"],
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:neural_network_classifier",
+                ],
                 outputs="neural_network_model",
                 name="neural_network_node",
             ),
             node(
                 func=lightgbm_classifier_node,
-                inputs=["X_train", "y_train", "params:lightgbm_classifier"],
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:lightgbm_classifier",
+                ],
                 outputs="lightgbm_model",
                 name="lightgbm_node",
             ),
             node(
                 func=catboost_classifier_node,
-                inputs=["X_train", "y_train", "params:catboost_classifier"],
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:catboost_classifier",
+                ],
                 outputs="catboost_model",
                 name="catboost_node",
             ),
@@ -76,5 +129,3 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
         ]
     )
-
-

@@ -16,11 +16,49 @@ from sklearn.metrics import (
     roc_curve,
 )
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SequentialFeatureSelector
 
 logger = logging.getLogger(__name__)
 
 
-def train_test_split_node(
+def scale_numerical_columns(df: pd.DataFrame):
+    """
+    Separates numerical and binary columns in a DataFrame, and applies standard scaling to non-binary numerical columns.
+
+    Parameters:
+        df (pd.DataFrame): The input DataFrame.
+
+    Returns:
+        pd.DataFrame: The DataFrame with scaled numerical columns (excluding binary columns).
+        list: List of scaled numerical column names.
+        list: List of binary column names.
+    """
+    # Identify numerical columns
+    numerical_columns = df.select_dtypes(include=["number"]).columns.tolist()
+
+    # Identify binary columns (with only 0 and 1 values)
+    binary_columns = [
+        col for col in numerical_columns if set(df[col].unique()).issubset({0, 1})
+    ]
+
+    # Non-binary numerical columns
+    non_binary_numerical_columns = [
+        col for col in numerical_columns if col not in binary_columns
+    ]
+
+    # Initialize the scaler
+    scaler = StandardScaler()
+
+    # Scale the non-binary numerical columns
+    df[non_binary_numerical_columns] = scaler.fit_transform(
+        df[non_binary_numerical_columns]
+    )
+
+    return df
+
+
+def train_test_split_function(
     df_final: pd.DataFrame,
     target_col: str,
     test_size: float = 0.3,
@@ -51,6 +89,62 @@ def train_test_split_node(
     )
 
     return X_train, X_test, y_train, y_test
+
+
+def feature_selection(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_test: pd.DataFrame,
+    solver: str = "liblinear",
+    class_weight: str = "balanced",
+    max_iter: int = 10000,
+    direction: str = "forward",
+    scoring: str = "roc_auc",
+    cv: int = 5,
+    n_jobs: float = -1,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Perform forward feature selection using Logistic Regression and retain only selected features.
+
+    Parameters:
+        X_train_scaled_df (pd.DataFrame): Scaled training data.
+        y_train (pd.Series): Training labels.
+        X_test_scaled_df (pd.DataFrame): Scaled testing data.
+        solver (str): Solver to use in Logistic Regression.
+        class_weight (str or dict): Class weight to use in Logistic Regression.
+        max_iter (int): Maximum number of iterations for Logistic Regression.
+        direction (str): Direction of feature selection ('forward' or 'backward').
+        scoring (str): Scoring metric for feature selection.
+        cv (int): Number of cross-validation folds.
+        n_jobs (int): Number of jobs to run in parallel.
+
+    Returns:
+        pd.DataFrame: Updated X_train with selected features.
+        pd.DataFrame: Updated X_test with selected features.
+        list: List of selected feature names.
+    """
+    # Logistic Regression model
+    logreg = LogisticRegression(
+        solver=solver, class_weight=class_weight, max_iter=max_iter
+    )
+
+    # Forward Feature Selection
+    sfs = SequentialFeatureSelector(
+        logreg, direction=direction, scoring=scoring, cv=cv, n_jobs=n_jobs
+    )
+
+    # Fit the selector
+    sfs.fit(X_train, y_train)
+
+    # Get selected feature names
+    selected_features = X_train.columns[sfs.get_support()]
+    logger.info(f"Selected features for all models: {list(selected_features)}")
+
+    # Keep only selected features in scaled datasets
+    X_train = X_train[selected_features]
+    X_test = X_test[selected_features]
+
+    return X_train, X_test
 
 
 def logistic_regression_node(
@@ -182,7 +276,8 @@ def random_forest_classifier_node(
 
     return model
 
-#CORREGIR SCALE POST WEIGHT
+
+# CORREGIR SCALE POST WEIGHT
 def xgboost_classifier_node(
     X_train: pd.DataFrame, y_train: pd.Series, params: Dict
 ) -> XGBClassifier:
@@ -209,7 +304,7 @@ def xgboost_classifier_node(
     scale_pos_weight = (len(y_train) - sum(y_train)) / sum(
         y_train
     )  # Balance class weights
-    
+
     xgb_base = XGBClassifier(
         objective="binary:logistic",
         eval_metric="auc",

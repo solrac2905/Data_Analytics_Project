@@ -179,72 +179,6 @@ def apply_one_hot_encoding(df: pd.DataFrame, categorical_columns: list) -> pd.Da
     return df
 
 
-def scale_numeric_features(df: pd.DataFrame, target_column: str) -> pd.DataFrame:
-    """
-    Scales numeric features using Min-Max scaling, excluding the target variable.
-
-    Args:
-        df: Input DataFrame.
-        numeric_columns: List of numeric columns to scale.
-        target_column: Target column to exclude from scaling.
-
-    Returns:
-        DataFrame with scaled numeric features.
-    """
-    # Exclude the target column from scaling and just consider numeric columns
-    numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns.drop(
-        target_column
-    )
-    columns_to_scale = [col for col in numeric_cols if col != target_column]
-
-    # Apply Min-Max scaling
-    scaler = preprocessing.MinMaxScaler()
-    scaled_data = scaler.fit_transform(df[columns_to_scale])
-
-    # Convert scaled data back to DataFrame
-    scaled_df = pd.DataFrame(scaled_data, columns=columns_to_scale, index=df.index)
-
-    # Combine scaled numeric columns with the rest of the DataFrame
-    non_scaled_df = df.drop(columns=columns_to_scale)
-    final_df = pd.concat([non_scaled_df, scaled_df], axis=1)
-
-    return final_df
-
-
-def pre_processing_raw_data(df: pd.DataFrame, params) -> pd.DataFrame:
-
-    df = handle_missing_values(df)
-    df = drop_top_5_percent_missing(
-        df, params["handle_missing_values"]["threshold_missing"]
-    )
-    df = flag_variables_with_high_default_diff(
-        df,
-        params["flag_variables_with_high_default_diff"]["vars_to_check"],
-        params["flag_variables_with_high_default_diff"]["threshold_diff"],
-    )
-    df = impute_missing_data(
-        df,
-        params["impute_missing_data"]["cols_to_fill_median"],
-        params["impute_missing_data"]["cols_to_fill_zero"],
-    )
-    df = handle_outliers(
-        df,
-        params["handle_outliers"]["upper_only"],
-        params["handle_outliers"]["both_ends"],
-        params["handle_outliers"]["upper_only_quantile"],
-        params["handle_outliers"]["both_ends_lower_quantile"],
-        params["handle_outliers"]["both_ends_upper_quantile"],
-        params["handle_outliers"]["clage_col"],
-        params["handle_outliers"]["clage_upper_quantile"],
-    )
-    df = apply_one_hot_encoding(
-        df, params["apply_one_hot_encoding"]["categorical_columns"]
-    )
-    df = scale_numeric_features(df, params["scale_numeric_features"]["target_column"])
-
-    return df
-
-
 def apply_log_transform(df: pd.DataFrame) -> pd.DataFrame:
     """
     Apply log1p transformation to skewed non-binary numeric columns.
@@ -280,3 +214,37 @@ def apply_log_transform(df: pd.DataFrame) -> pd.DataFrame:
     df_transformed[skewed_cols] = df_transformed[skewed_cols].apply(np.log1p)
 
     return df_transformed
+
+
+def pre_processing_raw_data(df: pd.DataFrame, params) -> pd.DataFrame:
+
+    df = drop_top_5_percent_missing(
+        df, params["handle_missing_values"]["threshold_missing"]
+    )
+    df = flag_variables_with_high_default_diff(
+        df,
+        params["flag_variables_with_high_default_diff"]["vars_to_check"],
+        params["flag_variables_with_high_default_diff"]["threshold_diff"],
+    )
+    df = handle_missing_values(df)
+    df = impute_missing_data(
+        df,
+        params["impute_missing_data"]["cols_to_fill_median"],
+        params["impute_missing_data"]["cols_to_fill_zero"],
+    )
+    df = handle_outliers(
+        df,
+        params["handle_outliers"]["upper_only"],
+        params["handle_outliers"]["both_ends"],
+        params["handle_outliers"]["upper_only_quantile"],
+        params["handle_outliers"]["both_ends_lower_quantile"],
+        params["handle_outliers"]["both_ends_upper_quantile"],
+        params["handle_outliers"]["clage_col"],
+        params["handle_outliers"]["clage_upper_quantile"],
+    )
+    df = apply_one_hot_encoding(
+        df, params["apply_one_hot_encoding"]["categorical_columns"]
+    )
+    df = apply_log_transform(df)
+
+    return df

@@ -19,6 +19,10 @@ preprocessed_log_dataset:
   type: pandas.ParquetDataset
   filepath: data/02_intermediate/preprocessed_log_dataset.parquet
 
+preprocessed_scale_dataset:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/preprocessed_scale_dataset.parquet
+
 X_train:
   type: pandas.ParquetDataset
   filepath: data/05_model_input/X_train.parquet
@@ -34,6 +38,14 @@ y_train:
 y_test:
   type: pandas.CSVDataset
   filepath: data/05_model_input/y_test.csv
+
+X_train_after_selection:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/X_train_after_selection.parquet
+
+X_test_after_selection:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/X_test_after_selection.parquet
 
 logistic_model:
   type: pickle.PickleDataset
