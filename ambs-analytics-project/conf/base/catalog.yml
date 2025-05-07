@@ -27,6 +27,14 @@ X_train:
   type: pandas.ParquetDataset
   filepath: data/05_model_input/X_train.parquet
 
+X_train_rus:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/X_train_rus.parquet
+
+X_train_smote:
+  type: pandas.ParquetDataset
+  filepath: data/05_model_input/X_train_smote.parquet
+
 X_test:
   type: pandas.ParquetDataset
   filepath: data/05_model_input/X_test.parquet
@@ -34,6 +42,14 @@ X_test:
 y_train:
   type: pandas.CSVDataset
   filepath: data/05_model_input/y_train.csv
+
+y_train_rus:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/y_train_rus.csv
+
+y_train_smote:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/y_train_smote.csv
 
 y_test:
   type: pandas.CSVDataset
@@ -52,9 +68,29 @@ logistic_model:
   filepath: data/06_models/logistic_model.pickle
   versioned: true
 
+logistic_model_rus:
+  type: pickle.PickleDataset
+  filepath: data/06_models/logistic_model_rus.pickle
+  versioned: true
+
+logistic_model_smote:
+  type: pickle.PickleDataset
+  filepath: data/06_models/logistic_model_smote.pickle
+  versioned: true
+
 decision_tree_model:
   type: pickle.PickleDataset
   filepath: data/06_models/decision_tree_model.pickle
+  versioned: true
+
+decision_tree_model_rus:
+  type: pickle.PickleDataset
+  filepath: data/06_models/decision_tree_model_rus.pickle
+  versioned: true
+
+decision_tree_model_smote:
+  type: pickle.PickleDataset
+  filepath: data/06_models/decision_tree_model_smote.pickle
   versioned: true
 
 random_forest_model:
@@ -70,6 +106,16 @@ xgboost_model:
 neural_network_model:
   type: pickle.PickleDataset
   filepath: data/06_models/neural_network_model.pickle
+  versioned: true
+
+neural_network_model_rus:
+  type: pickle.PickleDataset
+  filepath: data/06_models/neural_network_model_rus.pickle
+  versioned: true
+
+neural_network_model_smote:
+  type: pickle.PickleDataset
+  filepath: data/06_models/neural_network_model_smote.pickle
   versioned: true
 
 lightgbm_model:

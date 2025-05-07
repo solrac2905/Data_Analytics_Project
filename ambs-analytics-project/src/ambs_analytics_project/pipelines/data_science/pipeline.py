@@ -3,14 +3,14 @@ from .nodes import (
     scale_numerical_columns,
     train_test_split_function,
     feature_selection,
-    logistic_regression_node,
     results,
+    logistic_regression_node,
     decision_tree_classifier_node,
     random_forest_classifier_node,
     xgboost_classifier_node,
     neural_network_classifier_node,
-    lightgbm_classifier_node,
     catboost_classifier_node,
+    apply_sampling_smote_rus,
 )
 
 
@@ -52,28 +52,58 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="feature_selection_node",
             ),
             node(
+                func=apply_sampling_smote_rus,
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                    "params:apply_sampling.rus_params",
+                    "params:apply_sampling.smote_params",
+                ],
+                outputs=[
+                    "X_train_rus",
+                    "y_train_rus",
+                    "X_train_smote",
+                    "y_train_smote",
+                ],
+                name="apply_sampling_smote_rus_node",
+            ),
+            node(
                 func=logistic_regression_node,
                 inputs=[
                     "X_train_after_selection",
                     "y_train",
+                    "X_train_rus",
+                    "y_train_rus",
+                    "X_train_smote",
+                    "y_train_smote",
                     "params:logistic_regression",
                 ],
-                outputs="logistic_model",
+                outputs=[
+                    "logistic_model",
+                    "logistic_model_rus",
+                    "logistic_model_smote",
+                ],
                 name="logistic_regression_node",
             ),
             node(
-                # CHECK THE WARNING
                 func=decision_tree_classifier_node,
                 inputs=[
                     "X_train_after_selection",
                     "y_train",
+                    "X_train_rus",
+                    "y_train_rus",
+                    "X_train_smote",
+                    "y_train_smote",
                     "params:decision_tree_classifier",
                 ],
-                outputs="decision_tree_model",
+                outputs=[
+                    "decision_tree_model",
+                    "decision_tree_model_rus",
+                    "decision_tree_model_smote",
+                ],
                 name="decision_tree_node",
             ),
             node(
-                # CHECK THE WARNING
                 func=random_forest_classifier_node,
                 inputs=[
                     "X_train_after_selection",
@@ -98,20 +128,18 @@ def create_pipeline(**kwargs) -> Pipeline:
                 inputs=[
                     "X_train_after_selection",
                     "y_train",
+                    "X_train_rus",
+                    "y_train_rus",
+                    "X_train_smote",
+                    "y_train_smote",
                     "params:neural_network_classifier",
                 ],
-                outputs="neural_network_model",
-                name="neural_network_node",
-            ),
-            node(
-                func=lightgbm_classifier_node,
-                inputs=[
-                    "X_train_after_selection",
-                    "y_train",
-                    "params:lightgbm_classifier",
+                outputs=[
+                    "neural_network_model",
+                    "neural_network_model_rus",
+                    "neural_network_model_smote",
                 ],
-                outputs="lightgbm_model",
-                name="lightgbm_node",
+                name="neural_network_node",
             ),
             node(
                 func=catboost_classifier_node,
@@ -125,7 +153,13 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
             node(
                 func=results,
-                inputs=["logistic_model", "X_train", "y_train", "X_test", "y_test"],
+                inputs=[
+                    "params:results.models",
+                    "X_train_after_selection",
+                    "y_train",
+                    "X_test_after_selection",
+                    "y_test",
+                ],
                 outputs=None,
                 name="results_node",
             ),

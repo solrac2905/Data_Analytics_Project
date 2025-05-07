@@ -4,6 +4,15 @@ train_test_split:
   test_size: 0.2
   random_state: 42
 
+apply_sampling:
+  rus_params:
+    sampling_strategy: "auto"
+    random_state: 42
+  smote_params:
+    sampling_strategy: 0.8
+    random_state: 42
+    k_neighbors: 5
+
 feature_selection:
   solver: "liblinear"
   class_weight: "balanced"
@@ -18,7 +27,7 @@ logistic_regression:
     penalty: ['l1', 'l2']
     C: [0.01, 0.1, 1, 10]
     solver: ['liblinear']
-    class_weight: ['balanced']
+    class_weight: [null, 'balanced']
   scoring: "recall"
   cv: 10
   max_iter: 10000
@@ -28,12 +37,12 @@ logistic_regression:
 
 decision_tree_classifier:
   param_grid:
-    max_depth: [3, 5, 10, None]
+    max_depth: [3, 5, 10, null]
     min_samples_split: [2, 5, 10]
     min_samples_leaf: [1, 3, 5]
-    max_features: [None, 'sqrt', 'log2']
+    max_features: [null, 'sqrt', 'log2']
     criterion: ['gini', 'entropy']
-    class_weight: ['balanced']
+    class_weight: [null, 'balanced']
   scoring: "recall"
   cv: 10
   random_state: 42
@@ -43,11 +52,11 @@ decision_tree_classifier:
 random_forest_classifier:
   param_grid:
     n_estimators: [100, 200, 1500]
-    max_depth: [None, 10, 20]
+    max_depth: [null, 10, 20]
     min_samples_split: [2, 5, 10]
     min_samples_leaf: [1, 3, 5]
     max_features: ['sqrt', 'log2']
-    class_weight: ['balanced']
+    class_weight: [null, 'balanced']
   scoring: "recall"
   cv: 10
   random_state: 42
@@ -86,34 +95,17 @@ neural_network_classifier:
   n_jobs: -1
   max_iter: 1000
 
-lightgbm_classifier:
-  param_grid:
-    n_estimators: [100, 300]
-    max_depth: [3, 5, 7]
-    num_leaves: [15, 31, 63]
-    learning_rate: [0.01, 0.1]
-    min_child_samples: [10, 20]
-    subsample: [0.8, 1.0]
-    colsample_bytree: [0.8, 1.0]
-    class_weight: ['balanced']
-  scoring: "recall"
-  cv: 5
-  random_state: 42
-  verbose: 0
-  n_jobs: -1
-
 catboost_classifier:
   param_grid:
     iterations: [100, 300]
     learning_rate: [0.01, 0.1]
     depth: [4, 6, 8]
     l2_leaf_reg: [1, 3, 5]
-    class_weights:
-      - [1, 3]
-      - [1, 5]
+    auto_class_weights: [null, 'Balanced']
     bootstrap_type: ['Bayesian', 'Bernoulli']
   scoring: "recall"
   cv: 5
   random_state: 42
   verbose: 0
   n_jobs: -1
+

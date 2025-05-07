@@ -43,4 +43,19 @@ kedro run --pipeline data_processing
 kedro viz
 kedro pipeline create data_science
 
+
+SMOTE AND RUS
+  Desicion tree, MLP clasifier.
+
+'''
+
+
+'''
+
+'''
+
+
+'''
+
+
 '''

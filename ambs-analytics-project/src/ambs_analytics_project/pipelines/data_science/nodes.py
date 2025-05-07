@@ -18,6 +18,8 @@ from sklearn.metrics import (
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SequentialFeatureSelector
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import SMOTE
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +93,32 @@ def train_test_split_function(
     return X_train, X_test, y_train, y_test
 
 
+def apply_sampling_smote_rus(
+    X: pd.DataFrame, y: pd.Series, rus_params: dict, smote_params: dict
+) -> tuple:
+    """
+    Apply Random Under Sampling (RUS) and SMOTE to balance the dataset.
+
+    Args:
+        X (pd.DataFrame): Features.
+        y (pd.Series): Target variable.
+        rus_params (dict): Parameters for Random Under Sampling.
+        smote_params (dict): Parameters for SMOTE.
+
+    Returns:
+        tuple: Resampled features and target variable.
+    """
+    # Apply Random Under Sampling
+    rus = RandomUnderSampler(**rus_params)
+    X_rus, y_rus = rus.fit_resample(X, y)
+
+    # Apply SMOTE
+    smote = SMOTE(**smote_params)
+    X_smote, y_smote = smote.fit_resample(X, y)
+
+    return X_rus, y_rus, X_smote, y_smote
+
+
 def feature_selection(
     X_train: pd.DataFrame,
     y_train: pd.Series,
@@ -152,7 +180,13 @@ def feature_selection(
 
 
 def logistic_regression_node(
-    X_train: pd.DataFrame, y_train: pd.Series, params: Dict
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_train_rus: pd.DataFrame,
+    y_train_rus: pd.Series,
+    X_train_smote: pd.DataFrame,
+    y_train_smote: pd.Series,
+    params: Dict,
 ) -> LogisticRegression:
     """
     Tune a logistic regression model using GridSearchCV with configurable parameters.
@@ -176,6 +210,8 @@ def logistic_regression_node(
 
     # Ensure y_train is a 1D array
     y_train = y_train.values.ravel()
+    y_train_rus = y_train_rus.values.ravel()
+    y_train_smote = y_train_smote.values.ravel()
 
     # Step 1: Initialize logistic regression
     logreg_base = LogisticRegression(max_iter=max_iter, random_state=random_state)
@@ -192,14 +228,27 @@ def logistic_regression_node(
 
     grid_search.fit(X_train, y_train)
 
-    # Best logistic regression model
     model = grid_search.best_estimator_
 
-    return model
+    grid_search.fit(X_train_rus, y_train_rus)
+
+    model_rus = grid_search.best_estimator_
+
+    grid_search.fit(X_train_smote, y_train_smote)
+
+    model_smote = grid_search.best_estimator_
+
+    return model, model_rus, model_smote
 
 
 def decision_tree_classifier_node(
-    X_train: pd.DataFrame, y_train: pd.Series, params: Dict
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_train_rus: pd.DataFrame,
+    y_train_rus: pd.Series,
+    X_train_smote: pd.DataFrame,
+    y_train_smote: pd.Series,
+    params: Dict,
 ) -> DecisionTreeClassifier:
     """
     Tune a Decision Tree Classifier using GridSearchCV with configurable parameters.
@@ -222,6 +271,8 @@ def decision_tree_classifier_node(
 
     # Ensure y_train is a 1D array
     y_train = y_train.values.ravel()
+    y_train_rus = y_train_rus.values.ravel()
+    y_train_smote = y_train_smote.values.ravel()
 
     # Step 1: Initialize decision tree classifier
     dt_base = DecisionTreeClassifier(random_state=random_state)
@@ -241,7 +292,15 @@ def decision_tree_classifier_node(
     # Best decision tree model
     model = grid_search.best_estimator_
 
-    return model
+    grid_search.fit(X_train_rus, y_train_rus)
+
+    model_rus = grid_search.best_estimator_
+
+    grid_search.fit(X_train_smote, y_train_smote)
+
+    model_smote = grid_search.best_estimator_
+
+    return model, model_rus, model_smote
 
 
 def random_forest_classifier_node(
@@ -290,7 +349,6 @@ def random_forest_classifier_node(
     return model
 
 
-# CORREGIR SCALE POST WEIGHT
 def xgboost_classifier_node(
     X_train: pd.DataFrame, y_train: pd.Series, params: Dict
 ) -> XGBClassifier:
@@ -347,7 +405,13 @@ def xgboost_classifier_node(
 
 
 def neural_network_classifier_node(
-    X_train: pd.DataFrame, y_train: pd.Series, params: Dict
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_train_rus: pd.DataFrame,
+    y_train_rus: pd.Series,
+    X_train_smote: pd.DataFrame,
+    y_train_smote: pd.Series,
+    params: Dict
 ) -> MLPClassifier:
     """
     Tune an MLPClassifier (Neural Network) using GridSearchCV with configurable parameters.
@@ -371,6 +435,8 @@ def neural_network_classifier_node(
 
     # Ensure y_train is a 1D array
     y_train = y_train.values.ravel()
+    y_train_rus = y_train_rus.values.ravel()
+    y_train_smote = y_train_smote.values.ravel()
 
     # Step 1: Initialize MLP Classifier
     mlp_base = MLPClassifier(max_iter=max_iter, random_state=random_state)
@@ -390,53 +456,15 @@ def neural_network_classifier_node(
     # Best MLP model
     model = grid_search.best_estimator_
 
-    return model
+    grid_search.fit(X_train_rus, y_train_rus)
 
+    model_rus = grid_search.best_estimator_
 
-def lightgbm_classifier_node(
-    X_train: pd.DataFrame, y_train: pd.Series, params: Dict
-) -> LGBMClassifier:
-    """
-    Tune a LightGBM Classifier using GridSearchCV with configurable parameters.
+    grid_search.fit(X_train_smote, y_train_smote)
 
-    Args:
-        X_train (pd.DataFrame): Training features.
-        y_train (pd.Series): Training labels.
-        params (Dict): Dictionary of parameters including 'param_grid' and other configurations.
+    model_smote = grid_search.best_estimator_
 
-    Returns:
-        LGBMClassifier: Best LightGBM model after hyperparameter tuning.
-    """
-    # Extract parameters
-    param_grid = params["param_grid"]
-    scoring = params.get("scoring", "recall")
-    cv = params.get("cv", 5)
-    random_state = params.get("random_state", 42)
-    verbose = params.get("verbose", 1)
-    n_jobs = params.get("n_jobs", -1)
-
-    # Ensure y_train is a 1D array
-    y_train = y_train.values.ravel()
-
-    # Step 1: Initialize LightGBM Classifier
-    lgbm_base = LGBMClassifier(random_state=random_state)
-
-    # Step 2: Grid search with cross-validation
-    grid_search = GridSearchCV(
-        estimator=lgbm_base,
-        param_grid=param_grid,
-        scoring=scoring,
-        cv=cv,
-        verbose=verbose,
-        n_jobs=n_jobs,
-    )
-
-    grid_search.fit(X_train, y_train)
-
-    # Best LightGBM model
-    model = grid_search.best_estimator_
-
-    return model
+    return model, model_rus, model_smote
 
 
 def catboost_classifier_node(
@@ -488,7 +516,7 @@ def catboost_classifier_node(
 
 
 def results(
-    model: LogisticRegression,
+    model_list: pd.Series,
     X_train: pd.DataFrame,
     y_train: pd.Series,
     X_test: pd.DataFrame,
@@ -498,7 +526,7 @@ def results(
     Computes ROC AUC scores for training and testing sets.
 
     Args:
-        model (LogisticRegression): Trained logistic regression model.
+        Model_list (pd): List of Models.
         X_train (pd.DataFrame): Training features.
         y_train (pd.Series): True labels for training set.
         X_test (pd.DataFrame): Testing features.
@@ -509,6 +537,9 @@ def results(
             - auc_train: ROC AUC score for training set.
             - auc_test: ROC AUC score for testing set.
     """
+
+    model = model_list[0]
+
     y_train_proba = model.predict_proba(X_train)[:, 1]
     y_test_proba = model.predict_proba(X_test)[:, 1]
 
