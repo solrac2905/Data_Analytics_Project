@@ -48,14 +48,3 @@ SMOTE AND RUS
   Desicion tree, MLP clasifier.
 
 '''
-
-
-'''
-
-'''
-
-
-'''
-
-
-'''

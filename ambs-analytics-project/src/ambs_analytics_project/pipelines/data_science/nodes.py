@@ -1,6 +1,7 @@
 from typing import Tuple, Dict
 import pandas as pd
 import logging
+from typing import List
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -10,16 +11,17 @@ from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from catboost import CatBoostClassifier
 from sklearn.metrics import (
-    classification_report,
     confusion_matrix,
     roc_auc_score,
-    roc_curve,
+    precision_score,
+    recall_score,
 )
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SequentialFeatureSelector
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import StackingClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -411,7 +413,7 @@ def neural_network_classifier_node(
     y_train_rus: pd.Series,
     X_train_smote: pd.DataFrame,
     y_train_smote: pd.Series,
-    params: Dict
+    params: Dict,
 ) -> MLPClassifier:
     """
     Tune an MLPClassifier (Neural Network) using GridSearchCV with configurable parameters.
@@ -453,7 +455,6 @@ def neural_network_classifier_node(
 
     grid_search.fit(X_train, y_train)
 
-    # Best MLP model
     model = grid_search.best_estimator_
 
     grid_search.fit(X_train_rus, y_train_rus)
@@ -515,49 +516,225 @@ def catboost_classifier_node(
     return model
 
 
+def stacked_classifier(X_train: pd.DataFrame, y_train: pd.Series) -> StackingClassifier:
+    """
+    Train a stacked classifier with specified base learners and meta-learner.
+
+    Args:
+        data (pd.DataFrame): The input dataset.
+        target_column (str): Name of the target column.
+        test_size (float): Proportion of data to use as test set.
+        random_state (int): Random seed for reproducibility.
+
+    Returns:
+        dict: Trained model and evaluation metrics.
+    """
+
+    y_train = y_train.values.ravel()
+
+    # Define base learners
+    base_learners = [
+        (
+            "lr",
+            LogisticRegression(
+                C=0.01,
+                class_weight="balanced",
+                penalty="l2",
+                solver="liblinear",
+                max_iter=1000,
+                random_state=42,
+            ),
+        ),
+        (
+            "rf",
+            RandomForestClassifier(
+                class_weight="balanced",
+                max_depth=10,
+                max_features="sqrt",
+                min_samples_leaf=5,
+                min_samples_split=2,
+                n_estimators=1500,
+                random_state=42,
+            ),
+        ),
+        (
+            "dt",
+            DecisionTreeClassifier(
+                class_weight="balanced",
+                criterion="gini",
+                max_depth=3,
+                max_features="sqrt",
+                min_samples_leaf=1,
+                min_samples_split=2,
+                random_state=42,
+            ),
+        ),
+        (
+            "mlp",
+            MLPClassifier(
+                activation="relu",
+                alpha=0.0001,
+                hidden_layer_sizes=(128, 64, 32),
+                learning_rate="constant",
+                solver="adam",
+                random_state=42,
+            ),
+        ),
+        (
+            "xgb",
+            XGBClassifier(
+                learning_rate=0.1,
+                max_depth=4,
+                min_child_weight=5,
+                n_estimators=100,
+                scale_pos_weight=10,
+                subsample=1.0,
+                random_state=42,
+            ),
+        ),
+        (
+            "catboost",
+            CatBoostClassifier(
+                auto_class_weights="Balanced",
+                bootstrap_type="Bayesian",
+                depth=4,
+                iterations=300,
+                l2_leaf_reg=5,
+                learning_rate=0.1,
+                random_state=42,
+                verbose=0,
+            ),
+        ),
+    ]
+
+    # Define meta-learner
+    meta_learner = LogisticRegression(
+        class_weight="balanced", max_iter=1000, random_state=42
+    )
+
+    # Stacking Classifier
+    stack_model = StackingClassifier(
+        estimators=base_learners,
+        final_estimator=meta_learner,
+        cv=5,
+        n_jobs=-1,
+        passthrough=True,
+    )
+
+    stack_model.fit(X_train, y_train)
+
+    return stack_model
+
+
 def results(
-    model_list: pd.Series,
+    stacked_model,
+    catboost_model,
+    neural_network_model_rus,
+    xgboost_model,
+    random_forest_model,
+    decision_tree_model,
+    logistic_model,
     X_train: pd.DataFrame,
     y_train: pd.Series,
     X_test: pd.DataFrame,
     y_test: pd.Series,
-) -> Tuple[float, float]:
+):
     """
-    Computes ROC AUC scores for training and testing sets.
+    Evaluates pre-trained models stored in the catalog.
 
     Args:
-        Model_list (pd): List of Models.
+        model_names
+        catalog (dict): Kedro catalog containing the saved models.
         X_train (pd.DataFrame): Training features.
         y_train (pd.Series): True labels for training set.
         X_test (pd.DataFrame): Testing features.
         y_test (pd.Series): True labels for testing set.
-
-    Returns:
-        Tuple[float, float]:
-            - auc_train: ROC AUC score for training set.
-            - auc_test: ROC AUC score for testing set.
     """
 
-    model = model_list[0]
+    models = [
+        stacked_model,
+        catboost_model,
+        neural_network_model_rus,
+        xgboost_model,
+        random_forest_model,
+        decision_tree_model,
+        logistic_model,
+    ]
 
-    y_train_proba = model.predict_proba(X_train)[:, 1]
-    y_test_proba = model.predict_proba(X_test)[:, 1]
+    results_list = []
 
-    y_test_pred = model.predict(X_test)
+    for model in models:
+        logger.info(f"Evaluating model: {type(model).__name__}")
 
-    auc_train = roc_auc_score(y_train, y_train_proba)
-    auc_test = roc_auc_score(y_test, y_test_proba)
+        # Predict probabilities
+        y_train_proba = model.predict_proba(X_train)[:, 1]
+        y_test_proba = model.predict_proba(X_test)[:, 1]
 
-    logger.info(f"Model: {type(model).__name__}")
-    logger.info(f"TRAIN Model AUC: {auc_train:.4f}")
-    logger.info(f"TEST Model AUC: {auc_test:.4f}")
+        # Predict classes
+        y_train_pred = model.predict(X_train)
+        y_test_pred = model.predict(X_test)
 
-    TN_logistic, FP_logistic, FN_logistic, TP_logistic = confusion_matrix(
-        y_test, y_test_pred
-    ).ravel()
-    logger.info(f"True-Negatives (TN): {TN_logistic}")
-    logger.info(f"False-Positives (FP): {FP_logistic}")
-    logger.info(f"False-Negatives (FN): {FN_logistic}")
-    logger.info(f"True-Positives (TP): {TP_logistic}")
-    exp_profit_logistic = TN_logistic - FN_logistic - FP_logistic
-    logger.info(f"Expected Profit: {exp_profit_logistic}")
+        # Compute AUC scores
+        auc_train = roc_auc_score(y_train, y_train_proba)
+        auc_test = roc_auc_score(y_test, y_test_proba)
+
+        # Calculate Precision and Recall
+
+        precision_train_1 = precision_score(y_train, y_train_pred, pos_label=1)
+        recall_train_1 = recall_score(y_train, y_train_pred, pos_label=1)
+        precision_train_0 = precision_score(y_train, y_train_pred, pos_label=0)
+        recall_train_0 = recall_score(y_train, y_train_pred, pos_label=0)
+
+        precision_test_1 = precision_score(y_test, y_test_pred, pos_label=1)
+        recall_test_1 = recall_score(y_test, y_test_pred, pos_label=1)
+        precision_test_0 = precision_score(y_test, y_test_pred, pos_label=0)
+        recall_test_0 = recall_score(y_test, y_test_pred, pos_label=0)
+
+        # Log AUC scores
+        logger.info(f"TRAIN AUC: {auc_train:.4f}")
+        logger.info(f"TEST AUC: {auc_test:.4f}")
+        logger.info(f"precision_train_1: {precision_train_1:.4f}")
+        logger.info(f"recall_train_1: {recall_train_1:.4f}")
+        logger.info(f"precision_train_0: {precision_train_0:.4f}")
+        logger.info(f"recall_train_0: {recall_train_0:.4f}")
+        logger.info(f"precision_test_1: {precision_test_1:.4f}")
+        logger.info(f"recall_test_1: {recall_test_1:.4f}")
+        logger.info(f"precision_test_0: {precision_test_0:.4f}")
+        logger.info(f"recall_test_0: {recall_test_0:.4f}")
+
+        # Confusion Matrix
+        TN, FP, FN, TP = confusion_matrix(y_test, y_test_pred).ravel()
+        logger.info(f"True-Negatives (TN): {TN}")
+        logger.info(f"False-Positives (FP): {FP}")
+        logger.info(f"False-Negatives (FN): {FN}")
+        logger.info(f"True-Positives (TP): {TP}")
+
+        # Expected Profit Calculation
+        exp_profit = TN - FN - FP
+        logger.info(f"Expected Profit: {exp_profit}")
+
+        results_list.append(
+            {
+                "Model": type(model).__name__,
+                "Train AUC": auc_train,
+                "Test AUC": auc_test,
+                "precision_train_1": precision_train_1,
+                "recall_train_1": recall_train_1,
+                "precision_train_0": precision_train_0,
+                "recall_train_0": recall_train_0,
+                "precision_test_1": precision_test_1,
+                "recall_test_1": recall_test_1,
+                "precision_test_0": precision_test_0,
+                "recall_test_0": recall_test_0,
+                "True Negatives": TN,
+                "False Positives": FP,
+                "False Negatives": FN,
+                "True Positives": TP,
+                "Expected Profit": exp_profit,
+            }
+        )
+
+    # Convert results to DataFrame
+    results_df = pd.DataFrame(results_list)
+
+    return results_df

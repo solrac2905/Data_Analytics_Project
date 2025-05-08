@@ -127,3 +127,12 @@ catboost_model:
   type: pickle.PickleDataset
   filepath: data/06_models/catboost_model.pickle
   versioned: true
+
+stacked_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/stacked_model.pickle
+  versioned: true
+
+results_df:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/results_df.csv

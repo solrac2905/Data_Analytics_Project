@@ -11,6 +11,7 @@ from .nodes import (
     neural_network_classifier_node,
     catboost_classifier_node,
     apply_sampling_smote_rus,
+    stacked_classifier,
 )
 
 
@@ -152,15 +153,30 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="catboost_node",
             ),
             node(
+                func=stacked_classifier,
+                inputs=[
+                    "X_train_after_selection",
+                    "y_train",
+                ],
+                outputs="stacked_model",
+                name="stacked_classifier_node",
+            ),
+            node(
                 func=results,
                 inputs=[
-                    "params:results.models",
+                    "stacked_model",
+                    "catboost_model",
+                    "neural_network_model_rus",
+                    "xgboost_model",
+                    "random_forest_model",
+                    "decision_tree_model",
+                    "logistic_model",
                     "X_train_after_selection",
                     "y_train",
                     "X_test_after_selection",
                     "y_test",
                 ],
-                outputs=None,
+                outputs="results_df",
                 name="results_node",
             ),
         ]
